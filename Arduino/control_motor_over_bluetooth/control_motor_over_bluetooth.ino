@@ -3,12 +3,14 @@
 
 #include <SoftwareSerial.h> 
 
-//#define BT_HWS
+#define BT_HWS
+//#define USB_DBG
+#define BT_SPD 38400
 
 const int MOTA_PINA = 6;  // (pwm) pin 5 connected to pin A-IA 
 const int MOTA_PINB = 7;  // (pwm) pin 6 connected to pin A-IB 
 
-const int SS_RX=3;
+const int SS_RX=3; // software serial pins
 const int SS_TX=4;
 
 class Motor {
@@ -30,14 +32,22 @@ class Motor {
     if (0==speed) {
       // stop - both low
     } else if (0<speed) {
-      // forwards
+      // forward
       val1 = speed;
     } else if (0>speed) {
       // backwards
-      val2 = -speed;
+      val2 = -speed; //convert to positive value
     }
-    analogWrite(pin1, val1);
-    analogWrite(pin2, val2);
+    if (250<val1) {
+      digitalWrite(pin1, HIGH); // constant HIGH - full power
+    } else {
+      analogWrite(pin1, val1); // PWM - not full power
+    }
+    if (250<val2) {
+      digitalWrite(pin2, HIGH); // constant HIGH - full power
+    } else {
+      analogWrite(pin2, val2); // PWM - not full power
+    }
   }
 };
 
@@ -48,10 +58,12 @@ Motor m(MOTA_PINA, MOTA_PINB);
 
 void setup() {
 #ifdef BT_HWS
-  Serial.begin(9600);
+  Serial.begin(BT_SPD);
 #else
+#ifdef USB_DBG
   Serial.begin(57600);//115200);
-  ss.begin(9600);
+#endif
+  ss.begin(BT_SPD);
 #endif
   m.init();
 }
@@ -69,13 +81,19 @@ void loop() {
     ss.readString();
 #endif    
 #ifndef BT_HWS
+#ifdef USB_DBG
+    Serial.print("in: ");
     Serial.println(s);
+#endif
 #endif
     if (s.startsWith("s")) {
       s = s.substring(1);
       int i = s.toInt();
 #ifndef BT_HWS
+#ifdef USB_DBG
+    Serial.print("speed: ");
     Serial.println(s);
+#endif
 #endif
       m.go(i);
     }

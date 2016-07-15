@@ -264,16 +264,48 @@ void connectDevice()
     error = ex.toString();     
   } 
 }
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int sx=-1;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+class MyButt {
+  int x;
+  int y;
+  int w;
+  int h;
+  String t;
+  MyButt(int x, int y, int w, int h, String t) {
+    this.x=x;
+    this.y=y;
+    this.w=w;
+    this.h=h;
+    this.t=t;
+  }
+  void draw() {
+    fill(255,0,0); //red
+    rect(x,y,w,h);
+    fill(255,255,0);//yellow
+    text(t,x+49,y+65);
+  }
+  boolean isHit(int mX, int mY) {
+    return (mX > x && mX < (x+w) && mY > y && mY < (y+h));
+  }
+}
+int sx=-1;//slide
 int sy=-1;
 int sw=-1;
 int sh=-1;
-int sx2=-1;
-int sx3=-1;
-int sy3=-1;
-int sw3=-1;
-int sh3=-1;
+int sx2=-1;//slider
+//int sx3=-1;//stop
+//int sy3=-1;
+//int sw3=-1;
+//int sh3=-1;
+MyButt stop=null;
+int sx4=-1;//fwd
+int sy4=-1;
+int sw4=-1;
+int sh4=-1;
+int sx5=-1;//back
+int sy5=-1;
+int sw5=-1;
+int sh5=-1;
 void showData() 
 {   
   try
@@ -308,9 +340,9 @@ void showData()
   stroke(255, 255, 0);
   fill(255, 0, 0);
   if (sx==-1) {
-    sx=25;
+    sx=50;
     sy=300;
-    sw=displayWidth-25*2;
+    sw=displayWidth-50*2;
     sh=150;
   }
   rect(sx, sy, sw, sh);
@@ -324,16 +356,41 @@ void showData()
   }
   rect(sx2-40,sy+10,40*2,sh-20);
   // stop button next to slider
-  fill(255,0,0);
-  if (sx3==-1) {
-    sx3=displayWidth/2-100;
-    sy3=sy+sh+100;
-    sw3=200;
-    sh3=100;
+//  fill(255,0,0);
+//  if (sx3==-1) {
+  if (null==stop) {
+//    sx3=displayWidth/2-100;
+//    sy3=sy+sh+100;
+//    sw3=200;
+//    sh3=100;
+    stop = new MyButt(displayWidth/2-100,sy+sh+100,200,100,"Stop");
   }
-  rect(sx3,sy3,sw3,sh3);
+//  rect(sx3,sy3,sw3,sh3);
+//  fill(255,255,0);
+//  text("Stop",sx3+49,sy3+65);
+  stop.draw();
+  // "full forward" button
+  fill(255,0,0);
+  if (sx4==-1) {
+    sx4=displayWidth/2+250;
+    sy4=sy+sh+100;
+    sw4=250;
+    sh4=100;
+  }
+  rect(sx4,sy4,sw4,sh4);
   fill(255,255,0);
-  text("Stop",sx3+50,sy3+50);
+  text("Full fwd",sx4+48,sy4+65);
+  // "full backward" button
+  fill(255,0,0);
+  if (sx5==-1) {
+    sx5=displayWidth/2-500;
+    sy5=sy+sh+100;
+    sw5=300;
+    sh5=100;
+  }
+  rect(sx5,sy5,sw5,sh5);
+  fill(255,255,0);
+  text("Full back",sx5+48,sy5+65);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void checkButton()
@@ -343,15 +400,30 @@ void checkButton()
   {
     int mid=sx+(sw/2);
     // map from sx..sx+sw (display) range to -255..+255 (locomotive) range
-    speed=(int)map((float)mouseX,(float)sx,(float)(sx+sw),(float)-255,(float)+255);
+    speed=(int)map((float)mouseX,(float)(sx+40),(float)(sx+sw-40*2),(float)-255,(float)+255);
     sx2=mouseX;
-    Log.i(TAG,"checkButton:mid="+mid+",sp="+speed);
+    Log.i(TAG,"checkButton:mid="+mid+",sx2="+sx2+",sp="+speed);
     send="s";
     if (speed>0) send+='+';
     send+=Integer.valueOf(speed);
     send+='\n';
   }
-  if (sx3!=-1 && mouseX > sx3 && mouseX < (sx3+sw3) && mouseY > sy3 && mouseY < (sy3+sh3))
+  if (sx4!=-1 && mouseX > sx4 && mouseY < (sx4+sw4) && mouseY > sy4 && mouseY < (sy4+sh4))
+  {
+    speed = 255;
+    sx2 = sx+sw-40;
+    Log.i(TAG,"checkButton:ff,sx2="+sx2+",sp="+speed);
+    send="s+255\n";
+  }
+  if (sx5!=-1 && mouseX > sx5 && mouseX < (sx5+sw5) && mouseY > sy5 && mouseY < (sy5+sh5))
+  {
+    speed = -255;
+    sx2 = sx+40;
+    Log.i(TAG,"checkButton:fb,sx2="+sx2+",sp="+speed);
+    send = "s-255\n";
+  }
+  if (null!=stop && stop.isHit(mouseX,mouseY))
+//  if (sx3!=-1 && mouseX > sx3 && mouseX < (sx3+sw3) && mouseY > sy3 && mouseY < (sy3+sh3))
   {
     speed=0;
     sx2=displayWidth/2;
