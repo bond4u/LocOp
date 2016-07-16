@@ -14,13 +14,6 @@ final String TAG = "MyBt";
 
 ArrayList<BluetoothDevice> devices;
 BluetoothAdapter adapter;
-//BluetoothDevice dev1;
-//BluetoothSocket sock1;
-
-//InputStream ins1;
-//OutputStream ous1;
-
-//boolean registered = false;
 
 int f1s;//font1 size
 PFont f1;
@@ -28,16 +21,17 @@ int f2s;//font2 size
 PFont f2;
 // BT states:0=no bt
 // 1=bt on but scan in progress
-// 2=bt on and devices list but no selection
-int btState=0;
+// 2=bt on and devices list
+// sub-states: null==loco1 -> no selection, null!=loco1 -> loco selected
+int btState = 0;
 // loco holds it's state
-Loco loco1=null;
+Loco loco1 = null;
 
-//String error;
 String cValue;
 String pValue;
 int fm;// font size multiplier
 int speed;
+
 ////////////////////////////////////////////
 // button class for canvas - drawable and hit-testable
 class MyButt {
@@ -100,10 +94,6 @@ class Loco {
       Log.e(TAG, getName()+".connect.sock.create.exc="+ex);
       err = ex.toString();
     }
-    /*
-      Method m = device.getClass().getMethod("createRfcommSocket", new Class[] { int.class });     
-      socket = (BluetoothSocket) m.invoke(device, 1);             
-    */
     Log.i(TAG, getName()+".connect.socket="+sock);
     if (null != sock) {
       try {
@@ -133,14 +123,11 @@ class Loco {
   }
   void showError()
   {
-//    background(255, 0, 0);
     fill(255, 0, 0);
     rect(x, y, w, h);
     fill(255, 255, 0);
     textFont(f2);
     textAlign(CENTER);
-//    translate(width / 2, height / 2);
-    //rotate(3 * PI / 2);
     text(err, x, y, w, h);
   }
   void showControls(String pVal, String cVal) {
@@ -199,7 +186,6 @@ class Loco {
       }
     } catch(Exception ex) {
       Log.e(TAG, getName()+".read.exc="+ex);
-//    state = 4;
       err = ex.toString();
     }
   }
@@ -213,7 +199,6 @@ class Loco {
       Log.i(TAG, getName()+".write,sent="+s);
     } catch(Exception ex) {
       Log.e(TAG, getName()+".write.exc="+ex);
-//      state = 4;
       err = ex.toString();
     }
   }
@@ -273,13 +258,11 @@ BroadcastReceiver receiver = new BroadcastReceiver()
     }
     else if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action))
     {
-//          state = 0;
       btState = 1; // BT on, but no devices yet
       Log.i(TAG, "onReceive.discovery.started");
     }
     else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action))
     {
-//          state = 1;
       btState = 2; // got devices list
       Log.i(TAG, "onReceive.discovery.finished");
     }
@@ -318,15 +301,6 @@ void draw() {
         showData();
       }
       break;
-/*    case 3:
-      connectDevice();
-      break;*/
-/*    case 4:
-      showData();
-      break;*/
-/*    case 5:
-      showError();
-      break;*/
   }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,12 +327,6 @@ void onStart()
 void onStop()
 {
   Log.i(TAG, "onStop,btState="+btState);
-  /*
-  if(registered)
-  {
-    unregisterReceiver(receiver);
-  }
-  */
   if(null != loco1 && null != loco1.sock) {
     Log.i(TAG, "onStop.closing.socket");
     try {
@@ -377,8 +345,6 @@ void welcome() {
   fill(255, 255, 255);
   textFont(f2);
   textAlign(CENTER);
-//  translate(width / 2, height / 2);
-  //rotate(3 * PI / 2);
   text("1. Enable bluetooth\n"+
     "2. Pair a Loco\n"+
     "3. Come back here\n"+
@@ -397,7 +363,6 @@ void onActivityResult (int requestCode, int resultCode, Intent data)
     } else {
       Log.i(TAG, "onActivityResult.enable.bt=RESULT_CANCELED");
       btState = 0;
-//    error = "Bluetooth has not been activated\nEnable BT and pair a Loco";
     }
   } else {
     Log.e(TAG, "onActivityResult.unknown.code="+requestCode);
@@ -409,12 +374,7 @@ void mouseReleased()
   switch(btState)
   {
     case 0:
-      /*
-      if(registered)
-      {
-        adapter.cancelDiscovery();
-      }
-      */
+      // do nothing
       break;
     case 1: // fall through
     case 2:
@@ -424,9 +384,6 @@ void mouseReleased()
         checkButton();
       }
       break;
-/*    case 3:
-      checkButton();
-      break;*/
   }
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -434,13 +391,6 @@ void getDevicesList()
 {
   Log.i(TAG, "getDevicesList.start,btState="+btState);
   devices = new ArrayList<BluetoothDevice>();
-    /*
-    registerReceiver(receiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-    registerReceiver(receiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED));
-    registerReceiver(receiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-    registered = true;
-    adapter.startDiscovery();
-    */
   Log.i(TAG, "getDevicesList.adapter="+adapter);
   if (null != adapter) {
     for (BluetoothDevice device : adapter.getBondedDevices()) {
@@ -484,7 +434,6 @@ void checkSelection()
   if (selection < devices.size())   
   {     
     BluetoothDevice dev1 = (BluetoothDevice) devices.get(selection);
-//    btState = 2;
     loco1 = new Loco(dev1, 50, 300);
     Log.i(TAG, "checkSelection,sel="+selection+",dev="+dev1.getName()+",btState="+btState);
     loco1.connect();
@@ -494,9 +443,6 @@ void checkSelection()
 //////////////////////////////////////////////////////////////////////////////
 void showData() 
 {   
-/*  if (null!=dev1 && null==loco1) {
-    loco1 = new Loco(dev1.getName(), 50, 300);
-  }*/
   if (null != loco1) {
     loco1.draw(pValue, cValue);
   }
